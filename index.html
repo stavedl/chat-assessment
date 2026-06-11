@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI对话内嵌量表测评演示 · AAQ-II</title>
+<style>
+:root{
+  --bg:#f0f2f7; --panel:#fff; --ai:#fff; --user:#4f6ef7; --text:#1f2430;
+  --sub:#7a8194; --accent:#4f6ef7; --accent-soft:#eef1fe; --border:#e6e8f0;
+  --green:#2eaf6e; --orange:#f0932b; --red:#e05656;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:var(--bg);color:var(--text);display:flex;justify-content:center;min-height:100vh;padding:16px}
+.wrap{display:flex;gap:16px;width:100%;max-width:1100px;align-items:flex-start}
+.phone{flex:1;max-width:480px;background:var(--panel);border-radius:18px;box-shadow:0 8px 30px rgba(40,50,90,.12);display:flex;flex-direction:column;height:88vh;min-height:560px;overflow:hidden}
+.header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6c8bff,#9f6cff);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+.header b{font-size:15px}.header span{font-size:12px;color:var(--green)}
+.chat{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.msg.ai{align-self:flex-start;background:#f4f6fb;border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.user{align-self:flex-end;background:var(--user);color:#fff;border-bottom-right-radius:4px}
+.sys{align-self:center;font-size:11px;color:var(--sub);background:#eceef5;padding:3px 10px;border-radius:10px}
+.choices{display:flex;flex-wrap:wrap;gap:8px;align-self:flex-start;max-width:90%}
+.choices button{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:18px;padding:7px 14px;font-size:13px;cursor:pointer;transition:.15s}
+.choices button:hover{background:var(--accent);color:#fff}
+.choices button.secondary{border-color:#c6cad6;background:#fff;color:var(--sub)}
+.choices button:disabled{opacity:.45;cursor:not-allowed}
+.progress{align-self:flex-start;font-size:11px;color:var(--sub);margin:-4px 0 0 4px}
+.inputbar{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}
+.inputbar input{flex:1;border:1px solid var(--border);border-radius:20px;padding:9px 14px;font-size:14px;outline:none}
+.inputbar input:focus{border-color:var(--accent)}
+.inputbar button{background:var(--accent);color:#fff;border:none;border-radius:20px;padding:0 18px;font-size:14px;cursor:pointer}
+.side{width:330px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border-radius:14px;padding:16px;box-shadow:0 4px 18px rgba(40,50,90,.08)}
+.card h3{font-size:14px;margin-bottom:10px}
+.scenarios button{display:block;width:100%;text-align:left;margin-bottom:8px;border:1px solid var(--border);background:#fafbfe;border-radius:10px;padding:10px 12px;font-size:13px;cursor:pointer;line-height:1.5}
+.scenarios button:hover{border-color:var(--accent);background:var(--accent-soft)}
+.scenarios b{color:var(--accent)}
+.sig{font-size:12px;color:var(--sub);line-height:1.7}
+.sigbar{height:8px;background:#eceef5;border-radius:4px;overflow:hidden;margin:6px 0}
+.sigbar i{display:block;height:100%;background:linear-gradient(90deg,#6c8bff,#9f6cff);width:0;transition:width .4s}
+.siglist{font-size:12px;margin-top:6px}
+.siglist li{list-style:none;padding:3px 0;border-bottom:1px dashed var(--border);color:var(--text)}
+.siglist li span{color:var(--accent);font-weight:600}
+.gate{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.8}
+.gate em{font-style:normal;padding:1px 6px;border-radius:6px;font-size:11px}
+.gate .ok{background:#e6f7ee;color:var(--green)}.gate .no{background:#fdeeee;color:var(--red)}
+/* report */
+.report{align-self:flex-start;max-width:92%;background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;font-size:13px;line-height:1.7;animation:pop .3s}
+.report h4{font-size:15px;margin-bottom:4px}
+.report .tag{display:inline-block;padding:2px 10px;border-radius:10px;color:#fff;font-size:12px;margin-left:6px}
+.scoreline{display:flex;align-items:baseline;gap:6px;margin:8px 0 4px}
+.scoreline b{font-size:30px}
+.rbar{position:relative;height:10px;border-radius:5px;margin:8px 0 4px;background:linear-gradient(90deg,#2eaf6e 0%,#2eaf6e 14%,#f0932b 14%,#f0932b 52%,#e05656 52%)}
+.rbar i{position:absolute;top:-4px;width:4px;height:18px;background:#1f2430;border-radius:2px}
+.rlabels{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-bottom:8px}
+.sec{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.sec b{display:block;margin-bottom:4px;font-size:13px}
+.disclaimer{margin-top:10px;font-size:11px;color:var(--sub);background:#f7f8fb;padding:8px 10px;border-radius:8px;line-height:1.6}
+details summary{cursor:pointer;color:var(--accent);font-size:12px;margin-top:6px}
+@media (max-width:900px){.wrap{flex-direction:column;align-items:center}.side{width:100%;max-width:480px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="phone">
+    <div class="header"><div class="avatar">AI</div><div><b>心理陪伴助手</b><br><span>● 在线 · 内嵌测评演示</span></div></div>
+    <div class="chat" id="chat"></div>
+    <div class="inputbar">
+      <input id="ipt" placeholder="输入消息…（试试：我想做个测评）" onkeydown="if(event.key==='Enter')sendInput()">
+      <button onclick="sendInput()">发送</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card scenarios">
+      <h3>🎬 演示场景</h3>
+      <button onclick="demoActive()"><b>场景一 · 主动触发</b><br>用户明确提出"我想做个测评"</button>
+      <button onclick="demoPassive()"><b>场景二 · 被动触发</b><br>自动播放一段倾诉对话，观察右侧信号累积，达到阈值后 AI 主动推荐</button>
+      <button onclick="resetAll()">↺ 重置对话</button>
+    </div>
+    <div class="card">
+      <h3>📡 被动触发信号面板</h3>
+      <div class="sig">信号累积（滑动窗口）：<b id="sigScore">0</b> / 阈值 4</div>
+      <div class="sigbar"><i id="sigFill"></i></div>
+      <ul class="siglist" id="sigList"></ul>
+      <div class="gate" id="gates">
+        决策闸门：<br>
+        ① 危机旁路 <em class="ok" id="g1">通过</em>　② 时机 <em class="ok" id="g2">通过</em><br>
+        ③ 频控/冷却 <em class="ok" id="g3">通过</em>　④ 用户偏好 <em class="ok" id="g4">通过</em>
+      </div>
+    </div>
+    <div class="card sig">
+      <h3>ℹ️ 量表信息</h3>
+      AAQ-II（hs1051）· 7 题 · 7 点计分<br>因子：经验性回避 = Σ[1..7]，总分 7–49<br>
+      档位：7–12 较低 ｜ 13–28 中等 ｜ 29–49 较高<br>最小作答间隔 3 秒（演示缩短为 0.8 秒）
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== 量表配置（由 Excel 导入的标准 JSON，可替换为任意量表） ====== */
+const SCALE = {
+  meta:{name:"接纳与行动问卷第二版 (AAQ-Ⅱ)",code:"hs1051",estimatedMinutes:"2–3",
+    instruction:"以下这些条目是人们可能会对自己的一些描述。请认真阅读每个句子，并根据你的真实情况选择每个条目与你的相符程度。答案没有正确错误之分，请按真实情况填写。"},
+  items:[
+    "痛苦的经历使我难以过上理想的生活","某些感受让我感到害怕","我担心控制不了自己的忧虑和感受",
+    "痛苦的记忆破坏了我愉快的生活","情绪扰乱了我的生活","大多数人似乎比我更能应对生活","瞻前顾后阻碍了我的成功"
+  ],
+  reverse:[false,false,false,false,false,false,false],
+  options:[["从未",1],["罕见",2],["少有",3],["有时",4],["多见",5],["常见",6],["总是",7]],
+  factor:{name:"经验性回避", min:7, max:49},
+  bands:[ // [min, max) 左闭右开
+    {min:7,max:13,level:"较低",color:"var(--green)",
+     text:"经验性回避是指当人们面对不愉快的想法、情绪或身体感受时，倾向于通过回避、压制或控制这些内在体验来减少心理不适的心理倾向。测评结果显示，你的经验性回避水平较低。这意味着当你面对焦虑、压力或不舒服的情绪时，通常不太会通过回避或压制来应对，而更容易允许这些体验自然存在，并继续进行对自己重要的事情。你往往能够在情绪出现时保持一定的觉察与接纳，而不是完全被情绪所牵制。这种方式体现了较好的心理灵活性，有助于你在面对压力、变化或挑战时保持稳定的适应能力，并持续朝着自己的目标前进。总体来看，你在情绪调节和压力应对方面具备较好的基础，但在压力较大的阶段，也可能偶尔出现短暂的回避或拖延，这是常见且正常的反应。",
+     advice:"（1）继续保持对情绪与想法的开放态度，在压力出现时提醒自己：情绪可以被体验，但不必完全控制行为；（2）通过简单的觉察练习，例如正念呼吸或情绪记录，进一步提升对内在体验的觉察能力；（3）在重要决策或行动中更多关注个人价值，例如成长、关系或意义感，让行为更多由价值引导，而不是由情绪驱动。"},
+    {min:13,max:29,level:"中等",color:"var(--orange)",
+     text:"经验性回避是指当人们面对不愉快的想法、情绪或身体感受时，倾向于通过回避、压制或控制这些内在体验来减少心理不适的心理倾向。测评结果显示，你的经验性回避水平处于中等水平。这说明你在面对压力或负面情绪时，有时能够接纳并面对这些体验，但在部分情境中也可能倾向于回避或压制情绪。例如，当压力较大或情绪较强烈时，你可能会通过拖延、转移注意力或暂时回避问题来缓解不适感。这种方式在短期内可以减少情绪压力，但如果长期依赖回避策略，可能会使问题持续存在，并增加心理负担。整体来看，你具备一定的心理灵活性，但在面对较强情绪或复杂压力时，情绪可能更容易影响你的行动选择。通过逐步提升情绪觉察和接纳能力，可以进一步增强面对压力时的适应能力。",
+     advice:"（1）在情绪出现时先进行简单觉察，例如给情绪命名：“我现在有些焦虑”或“我有点紧张”；（2）尝试练习在情绪存在的情况下继续完成小任务，逐步建立面对压力的信心；（3）减少习惯性的回避行为，例如拖延处理问题或逃避沟通，可以从较容易面对的小情境开始练习。"},
+    {min:29,max:50,level:"较高",color:"var(--red)",
+     text:"经验性回避是指当人们面对不愉快的想法、情绪或身体感受时，倾向于通过回避、压制或控制这些内在体验来减少心理不适的心理倾向。测评结果显示，你的经验性回避水平较高。这意味着当负面情绪或压力出现时，你可能更容易通过回避或压制来应对。例如避免接触可能带来压力的情境、拖延处理问题、减少沟通，或试图反复控制自己的情绪与想法。虽然这种方式在短期内可能缓解不适，但长期来看，回避策略往往会让问题持续存在，并可能增加压力来源，同时也会让情绪更容易反复出现。经验性回避水平较高通常提示心理灵活性相对较低，当情绪出现时，行为更容易受到情绪影响。不过，这种模式是可以通过练习逐步改变的，通过学习新的情绪调节方式，可以逐渐提升面对压力的能力。",
+     advice:"（1）尝试改变“必须先消除情绪才能行动”的想法，逐步练习在情绪存在的情况下完成简单任务；（2）通过正念练习或情绪觉察训练，学习观察情绪与想法，而不是立即回避它们；（3）如果情绪困扰持续存在并影响到生活或工作，可以考虑寻求专业心理咨询支持，通过系统训练提升情绪接纳能力和心理灵活性。"}
+  ],
+  triggerKeywords:["逃避","回避","不敢面对","控制不了","控制不住","拖延","压力","焦虑","害怕","内耗","测评","心理灵活"]
+};
+
+/* ====== 计分引擎（纯函数） ====== */
+function scoreAAQ(answers){ // answers: 1-7 数组
+  const total = answers.reduce((s,v,i)=> s + (SCALE.reverse[i] ? 8-v : v), 0);
+  const band = SCALE.bands.find(b => total>=b.min && total<b.max);
+  return {total, band};
+}
+
+/* ====== 对话 UI ====== */
+const chat = document.getElementById('chat');
+let state = "IDLE"; // IDLE | RECOMMENDED | INSTRUCTION | ASKING | DONE
+let qIndex = 0, answers = [], lastAnswerTs = 0, busy=false;
+const MIN_INTERVAL = 800; // 演示用，正式为 3000ms
+
+function el(html){const d=document.createElement('div');d.innerHTML=html;return d.firstElementChild;}
+function add(node){chat.appendChild(node);chat.scrollTop=chat.scrollHeight;return node;}
+function sys(t){add(el(`<div class="sys">${t}</div>`));}
+function userMsg(t){add(el(`<div class="msg user"></div>`)).textContent=t;chat.scrollTop=chat.scrollHeight;}
+function aiMsg(t,delay=400){return new Promise(r=>{setTimeout(()=>{const m=add(el(`<div class="msg ai"></div>`));m.textContent=t;chat.scrollTop=chat.scrollHeight;r(m);},delay);});}
+function removeChoices(){chat.querySelectorAll('.choices,.progress').forEach(e=>e.remove());}
+
+function choices(list, handler, extraClass){
+  const box = add(el(`<div class="choices"></div>`));
+  list.forEach(([label,val,cls])=>{
+    const b=document.createElement('button');
+    b.textContent=label; if(cls)b.className=cls;
+    b.onclick=()=>{ if(busy)return;
+      const now=Date.now();
+      if(state==="ASKING" && now-lastAnswerTs<MIN_INTERVAL){ sys("作答太快啦，请认真读题后再选择（最小作答间隔）"); return; }
+      handler(label,val,box);
+    };
+    box.appendChild(b);
+  });
+  chat.scrollTop=chat.scrollHeight;
+  return box;
+}
+
+/* ====== 被动触发信号引擎 ====== */
+let sigScore=0, sigItems=[];
+function addSignal(name, pts){
+  sigScore+=pts; sigItems.push([name,pts]);
+  document.getElementById('sigScore').textContent=sigScore;
+  document.getElementById('sigFill').style.width=Math.min(100,sigScore/4*100)+"%";
+  const ul=document.getElementById('sigList');
+  ul.appendChild(el(`<li>${name} <span>+${pts}</span></li>`));
+}
+function resetSignals(){sigScore=0;sigItems=[];document.getElementById('sigScore').textContent=0;
+  document.getElementById('sigFill').style.width="0";document.getElementById('sigList').innerHTML="";}
+
+/* ====== 主动触发识别（简化规则演示） ====== */
+function detectIntent(text){
+  if(/危机|自杀|自伤|不想活/.test(text)) return "CRISIS";
+  if(/测评|测一测|测测|问卷|量表/.test(text)) return "ACTIVE";
+  return "CHAT";
+}
+
+async function sendInput(){
+  const ipt=document.getElementById('ipt'); const t=ipt.value.trim(); if(!t||busy)return;
+  ipt.value=""; userMsg(t); removeChoices();
+  const intent=detectIntent(t);
+  if(intent==="CRISIS"){
+    document.getElementById('g1').className="no"; document.getElementById('g1').textContent="拦截";
+    await aiMsg("听到你这样说，我很担心你。此刻你的感受非常重要，我想先陪你聊聊，而不是做任何测评。如果你正处于危险中，请立即联系身边可信任的人，或拨打心理援助热线 12356 / 北京 010-82951332。你愿意和我说说现在的情况吗？");
+    return;
+  }
+  if(intent==="ACTIVE" && state==="IDLE"){ return recommendScale("active"); }
+  if(state==="ASKING"){ // 文字模糊映射
+    const map={"从未":1,"罕见":2,"少有":3,"偶尔":3,"有时":4,"多见":5,"经常":6,"常见":6,"总是":7,"一直":7};
+    const hit=Object.keys(map).find(k=>t.includes(k));
+    if(hit){ return answerItem(hit, map[hit]); }
+    await aiMsg("我们先完成当前这道题哦（也可以回复“退出测评”随时结束）。"+(/退出测评/.test(t)?"":""));
+    if(/退出|不做了/.test(t)){ state="IDLE"; await aiMsg("好的，已退出测评，进度已保存，24小时内随时可以继续。我们接着聊。"); }
+    return;
+  }
+  // 普通聊天：做关键词信号检测
+  const hits=SCALE.triggerKeywords.filter(k=>t.includes(k));
+  if(hits.length){ addSignal("关键词："+hits.join("、"),1); }
+  await aiMsg("我在认真听。能多和我说说当时的情景和你的感受吗？");
+  if(sigScore>=4 && state==="IDLE"){ await recommendScale("passive"); }
+}
+
+/* ====== 推荐 → 确认 → 施测 ====== */
+async function recommendScale(mode){
+  state="RECOMMENDED"; removeChoices();
+  if(mode==="active"){
+    await aiMsg(`可以的。《${SCALE.meta.name}》共 7 题，约 ${SCALE.meta.estimatedMinutes} 分钟，用于了解你面对负面情绪时的接纳与回避程度（心理灵活性）。结果仅用于为你生成个人解读，不构成临床诊断。现在开始吗？`);
+  }else{
+    sys("信号累积达到阈值 4 分，四道闸门通过 → 生成推荐");
+    await aiMsg("听下来，你最近常常因为担心情绪失控而搁置想做的事，也提到了不少回避和压力的感受。如果你愿意，可以花 2–3 分钟做一个简短的专业问卷（AAQ-II，7 题），帮我们更准确地了解你应对情绪的方式，我也能据此给你更有针对性的建议。当然，不做也完全没关系，我们继续聊就好。",700);
+  }
+  choices([["好的，开始测评",1],["暂不需要",0,"secondary"]],async (label,val,box)=>{
+    box.remove(); userMsg(label);
+    if(!val){ state="IDLE"; await aiMsg("没问题，需要的时候随时告诉我。我们继续聊。"); sys("记录拒绝 1 次；连续拒绝 2 次将静默 30 天"); return; }
+    startAssessment();
+  });
+}
+
+async function startAssessment(){
+  state="INSTRUCTION"; qIndex=0; answers=[];
+  await aiMsg("📋 指导语：" + SCALE.meta.instruction, 500);
+  sys("进入施测模式：题干逐字呈现，AI 不改写题目与选项");
+  state="ASKING"; askItem();
+}
+
+async function askItem(){
+  lastAnswerTs=Date.now();
+  await aiMsg(`第 ${qIndex+1} 题／共 7 题\n${SCALE.items[qIndex]}`,500);
+  const opts = SCALE.options.map(([l,v])=>[l,v]);
+  if(qIndex>0) opts.push(["← 上一题",-1,"secondary"]);
+  choices(opts, (label,val,box)=>answerItem(label,val,box));
+}
+
+async function answerItem(label,val,box){
+  removeChoices();
+  if(val===-1){ qIndex--; answers.pop(); sys("返回上一题"); return askItem(); }
+  userMsg(label);
+  answers[qIndex]=val; qIndex++;
+  if(qIndex<7){ askItem(); } else { finish(); }
+}
+
+async function finish(){
+  state="DONE"; busy=true;
+  sys("计分中：经验性回避 = [1]+[2]+[3]+[4]+[5]+[6]+[7]");
+  const {total,band}=scoreAAQ(answers);
+  const pct=Math.round((total-7)/(49-7)*96+2);
+  const flat = answers.every(a=>a===answers[0]) ? `<div class="disclaimer">⚠️ 检测到全部题目作答一致，结果参考性可能受限，建议间隔一段时间后复测。</div>`:"";
+  setTimeout(()=>{
+    add(el(`<div class="report">
+      <h4>${SCALE.meta.name} · 测评报告 <span class="tag" style="background:${band.color}">${band.level}</span></h4>
+      <div class="scoreline"><b>${total}</b><span style="color:var(--sub)">/ 49 分 · 因子：经验性回避</span></div>
+      <div class="rbar"><i style="left:${pct}%"></i></div>
+      <div class="rlabels"><span>7 较低</span><span>13 中等</span><span>29 较高</span><span>49</span></div>
+      <div class="sec"><b>📖 结果解读</b>${band.text}</div>
+      <div class="sec"><b>💡 专家建议</b>${band.advice}</div>
+      ${flat}
+      <details><summary>本次作答明细</summary><div style="font-size:12px;color:var(--sub);margin-top:4px">${answers.map((a,i)=>`Q${i+1}=${a}`).join("，")}</div></details>
+      <div class="disclaimer">本测评为自评筛查工具，结果不构成临床诊断。若情绪困扰持续或加重，建议寻求专业心理咨询或医疗帮助。</div>
+    </div>`));
+    chat.scrollTop=chat.scrollHeight; busy=false;
+    setTimeout(async()=>{
+      await aiMsg("结果已经为你解读好了。结合你刚才聊到的情况，我们可以先从一个 3 分钟的正念呼吸练习开始，或者继续聊聊最近让你有压力的那件事。我也会在 4 周后提醒你复测，看看变化。你想先做哪个？",300);
+      choices([["开始正念练习",1],["继续聊聊",2,"secondary"],["再测一次（演示）",3,"secondary"]],async(l,v,b)=>{
+        b.remove(); userMsg(l);
+        if(v===3){ startAssessment(); return; }
+        sys("测评结果已写入用户画像：{hs1051, "+total+"分, "+band.level+", 今日} → 用于后续个性化对话与复测提醒");
+        await aiMsg(v===1?"好的，找一个舒服的姿势坐下，我们开始。先轻轻闭上眼睛，注意呼吸的自然节奏……（演示结束）":"好呀，你想从哪里说起？（演示结束）");
+      },"");
+    },600);
+  },700);
+}
+
+/* ====== 演示场景 ====== */
+function resetAll(){chat.innerHTML="";state="IDLE";qIndex=0;answers=[];busy=false;resetSignals();
+  ["g1","g2","g3","g4"].forEach(id=>{const e=document.getElementById(id);e.className="ok";e.textContent="通过";});
+  greet();}
+async function greet(){ await aiMsg("你好呀，我是你的心理陪伴助手。最近过得怎么样？有什么想聊的都可以告诉我。",200); }
+
+async function demoActive(){
+  resetAll(); await new Promise(r=>setTimeout(r,500));
+  userMsg("我最近总感觉很内耗，想做个心理测评看看自己的状态");
+  await recommendScale("active");
+}
+
+async function demoPassive(){
+  resetAll(); await new Promise(r=>setTimeout(r,400));
+  const script=[
+    ["这两周一直在拖延一个很重要的汇报，越拖越焦虑","关键词：拖延、焦虑",1],
+    ["我也在认真听。是什么让这个汇报对你来说压力这么大？",null,0],
+    ["一想到要上台我就害怕，总担心自己控制不了紧张的情绪","关键词：害怕、控制不了",1],
+    ["这种担心听起来让你很消耗。当紧张出现时，你通常会怎么做？",null,0],
+    ["我就刻意不去想它，刷手机逃避，但事情还是堆在那","语义信号：情绪回避主题（LLM 分类）",2],
+    ["逃避带来了短暂的轻松，但好像也让担子更重了。",null,0],
+    ["对，感觉别人都比我能扛事，我连面对都不敢","情绪信号：连续负向情绪 ≥3 轮",2],
+  ];
+  busy=true;
+  for(const [text,sig,isUser] of script){
+    await new Promise(r=>setTimeout(r,750));
+    if(isUser){ userMsg(text); if(sig) addSignal(sig, sig.startsWith("关键词")?1:2); }
+    else await aiMsg(text,200);
+  }
+  busy=false;
+  await new Promise(r=>setTimeout(r,600));
+  sys("时机判断：用户情绪表达完整、话题收束 → 适合推荐");
+  await recommendScale("passive");
+}
+
+greet();
+</script>
+</body>
+</html>
